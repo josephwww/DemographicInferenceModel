@@ -40,17 +40,15 @@ movies = remove_duplicate_movies()
 # data_output.close()
 
 # Rating space Comparison
-# rs = RatingSpaceComparison(rating_matrix, users)
-# rs.movies = movies
-# rs.filter_movie()
-# rs_result = rs.result
-# print(rs_result)
-# data_output = open('rs_result.pkl','wb')
-# pickle.dump(rs_result,data_output)
-# data_output.close()
+rs = RatingSpaceComparison(rating_matrix, users)
+rs.movies = movies
+rs.filter_movie()
+rs_result = rs.result
+print(rs_result)
+data_output = open('rs_result.pkl','wb')
+pickle.dump(rs_result,data_output)
+data_output.close()
 
 # BN
-# uname = ['user_id', 'gender', 'age', 'occupation', 'zip']
-# D = pd.read_table('ml-1m/users.dat', sep='::', header=None, names=uname, engine='python')
-bn = BN(rating_matrix, users)
-bn.filter_movie()
+# bn = BN(rating_matrix, users, 'chow-liu')
+# bn.filter_movie()

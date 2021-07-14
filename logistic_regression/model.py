@@ -38,7 +38,7 @@ class LR:
         return np.mean(scores)
 
     def filter_movie(self):
-        for num_movies in range(5, 16, 3):
+        for num_movies in range(5, 21, 3):
             print("number of movies:" , num_movies)
             self.result[num_movies] = {}
             for mode in ('random', 'anova'):

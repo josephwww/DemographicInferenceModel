@@ -5,11 +5,12 @@ from pomegranate import BayesianNetwork
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 
 class BN:
-    def __init__(self, rating_matrix, demographic):
+    def __init__(self, rating_matrix, demographic, algo='chow-liu'):
         self.RM = rating_matrix
         self.D = demographic
         self.spliter = KFold(n_splits=5)
         self.result = {}
+        self.algo = algo
 
     def train(self, df, num_movies):
         scores = []
@@ -22,7 +23,7 @@ class BN:
             D_train, D_test = self.D.iloc[train_ids], self.D.iloc[test_ids]
 
             for i in range(len(test_df)):
-                # print(i)
+
                 ratings = test_df.iloc[i][:-3]
                 valid_ratings = list(ratings[ratings != 0].index)[:num_movies]
                 X = train_df[valid_ratings+['gender', 'age', 'occupation']]
@@ -35,28 +36,33 @@ class BN:
                 for index in range(num_movies):
                     included_edges.extend([(index, occu_node), (index, age_node), (index, gender_node)])
                     excluded_edges.extend([(gender_node, index), (age_node, index), (occu_node, index)])
-                model = BayesianNetwork.from_samples(np.array(X), n_jobs=-1, pseudocount=1, include_edges=included_edges, exclude_edges=excluded_edges)
+
+                if self.algo == 'chow-liu':
+                    model = BayesianNetwork.from_samples(np.array(X), n_jobs=-1, pseudocount=1, algorithm='chow-liu')
+                else:
+                    model = BayesianNetwork.from_samples(np.array(X), n_jobs=-1, pseudocount=1, exclude_edges=excluded_edges, algorithm=self.algo)
+
                 try:
                     pred = model.predict([list(ratings[valid_ratings]) + [None, None, None]])
                     predict.append(list(pred[0])[-3:])
-                except:
+                except Exception as e:
+                    print(e)
                     predict.append(['M', 25, 4])
-                # print(predict[-1])
+                # print(i, predict[-1])
             # print('report: ')
 
             for i, attr in enumerate(['gender', 'age', 'occupation']):
-                y_pred, y_test = map(lambda x:x[i], predict), list(D_test[attr])
+                y_pred, y_test = list(map(lambda x:x[i], predict)), list(D_test[attr])
                 reports.append(classification_report(y_test, y_pred, zero_division=0))
                 scores.append(accuracy_score(y_test, y_pred))
 
         max_index = max(enumerate(scores), key=lambda x:x[1])[0]
-        print('max accuracy\'s model is: ')
         print(reports[max_index])
         print(reports[max_index+1])
         print(reports[max_index+2])
 
     def filter_movie(self):
-        for num_movies in range(5, 16, 3):
+        for num_movies in range(5, 21, 3):
             print("number of movies:" , num_movies)
             self.result[num_movies] = {}
             X = pd.merge(self.RM, self.D[['gender', 'age', 'occupation']], on='user_id')

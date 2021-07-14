@@ -14,6 +14,7 @@ class RatingSpaceComparison:
     def test(self, X, y, type:str):
         scores = []
         f1s = []
+        reports = []
         for train_ids, test_ids in self.spliter.split(X):
             x_train, x_test = X.iloc[train_ids], X.iloc[test_ids]
             y_train, y_test = y.iloc[train_ids], y.iloc[test_ids]
@@ -30,14 +31,18 @@ class RatingSpaceComparison:
             f1 = f1_score(y_true, y_pred, average="weighted")
             scores.append(accuracy)
             f1s.append(f1)
-            print('accuracy: ', accuracy_score(y_true, y_pred))
-            print('f1: ', f1_score(y_true, y_pred, average="weighted"))
-            print('report: ', classification_report(y_true, y_pred))
-        print('max accuracy of ', type, ' prediction is: ', max(scores))
+            reports.append(classification_report(y_true, y_pred))
+            # print('accuracy: ', accuracy_score(y_true, y_pred))
+            # print('f1: ', f1_score(y_true, y_pred, average="weighted"))
+            # print('report: ', classification_report(y_true, y_pred))
+        # print('max accuracy of ', type, ' prediction is: ', max(scores))
+        max_index = max(enumerate(scores), key=lambda x:x[1])[0]
+        print('max accuracy of ', type, ' prediction\'s model is: ')
+        print(reports[max_index])
         return np.mean(scores), np.mean(f1s)
 
     def filter_movie(self):
-        for num_movies in range(5, 16, 3):
+        for num_movies in range(5, 21, 3):
             print("number of movies:" , num_movies)
             self.result[num_movies] = {}
             for mode in ('random', 'anova'):
