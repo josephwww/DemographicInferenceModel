@@ -1,69 +1,58 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 import pandas as pd
-from sklearn.metrics import accuracy_score, f1_score, classification_report
-from sklearn.model_selection import KFold
 
-class LR:
+
+from basic_model.model import Model
+
+class LR(Model):
     def __init__(self, rating_matrix, demographic):
+        super().__init__(rating_matrix, demographic)
         self.models = {
             'gender': LogisticRegression(solver='liblinear', C=0.05),
             'age': LogisticRegression(multi_class='multinomial', solver='lbfgs', C=0.05, max_iter=4000),
-            'occu': LogisticRegression(multi_class='multinomial', solver='lbfgs', C=0.05, max_iter=4000)
+            'occupation': LogisticRegression(multi_class='multinomial', solver='lbfgs', C=0.05, max_iter=4000)
         }
-        self.RM = rating_matrix
-        self.D = demographic
-        self.spliter = KFold(n_splits=5)
-        self.result = {}
 
-    def train(self, X, y, type:str):
-        X = X.values
-        y = y.to_numpy()
-        scores = []
-        reports = []
+
+    def train(self, X, num_movies):
+        # X = X.values
         print('total users: {}'.format(len(X)))
-        for train_ids, test_ids in self.spliter.split(X):
-            x_train, x_test = X[train_ids], X[test_ids]
-            y_train, y_test = y[train_ids], y[test_ids]
-            model = self.models[type]
-            model.fit(x_train, y_train)
-            y_pred = model.predict(x_test)
-            # print('report: ')
-            reports.append(classification_report(y_test, y_pred, zero_division=0))
-            scores.append(model.score(x_test, y_test))
+        for prop in self.groups:
+            y = self.D
 
-        max_index = max(enumerate(scores), key=lambda x:x[1])[0]
-        print('max accuracy of ', type, ' prediction\'s model is: ')
-        print(reports[max_index])
-        return np.mean(scores)
+            for user_type in ('critic', 'active'):
+                for more_or_less in ('more', 'less'):
+                    print(num_movies, prop, user_type, more_or_less)
+                    y_pred = {'gender': [], 'age': [], 'occupation': []}
+                    for train_ids, test_ids in self.spliter.split(X):
+                        x_train, x_test = X.iloc[train_ids], X.iloc[test_ids]
+                        y_train, y_test = y.iloc[train_ids], y.iloc[test_ids]
+
+                        x_train = self.get_users(x_train, prop, user_type, more_or_less)
+                        y_train = y_train.loc[x_train.index]
+                        for type in ('gender', 'age', 'occupation'):
+                            model = self.models[type]
+                            model.fit(x_train.to_numpy(), y_train[type].to_numpy())
+                            y_pred[type].extend(list(model.predict(x_test.to_numpy())))
+                            # predict.extend(y_pred)
+                    predict = list(zip(y_pred['gender'], y_pred['age'], y_pred['occupation']))
+                    self.evaluate(predict, num_movies, prop, user_type, more_or_less)
+
 
     def filter_movie(self):
         for num_movies in range(5, 21, 3):
             print("number of movies:" , num_movies)
-            self.result[num_movies] = {}
             for mode in ('random', 'anova'):
-                self.result[num_movies][mode] = {}
                 print('select movies with {} method'.format(mode))
                 if mode == 'random':
                     X = self.RM.sample(n=num_movies, axis=1)
                 else:
                     selected_movies = self.movies[:num_movies]
                     X = self.RM[selected_movies]
-                X = pd.merge(X, self.D[['gender', 'age', 'occupation']], on='user_id')
-                X = X[X.astype(bool).sum(axis=1)>3]
-                y_gender = X.iloc[: , -3]
-                y_age = X.iloc[:, -2]
-                y_occu = X.iloc[:, -1]
-                X = X.drop(columns=['gender', 'age', 'occupation'])
+                # X = pd.merge(X, self.D[['gender', 'age', 'occupation']], on='user_id')
+                # X = X[X.astype(bool).sum(axis=1)>3]
+                # X = X.drop(columns=['gender', 'age', 'occupation'])
 
-                self.result[num_movies][mode]['gender'] = self.train(X, y_gender, 'gender')
-                self.result[num_movies][mode]['age'] = self.train(X, y_age, 'age')
-                self.result[num_movies][mode]['occu'] = self.train(X, y_occu, 'occu')
-
-    # def remove_duplicate_movies(self):
-    #     temp = []
-    #     for movie in self.movies:
-    #         if movie not in temp:
-    #             temp.append(movie)
-    #     self.movies = temp
+                self.train(X, num_movies)
 
