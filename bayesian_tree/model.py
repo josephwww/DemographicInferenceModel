@@ -60,6 +60,8 @@ class BN(Model):
         return reports
 
     def filter_movie(self):
+
+
         for num_movies in range(5, 21, 3):
             print("number of movies:", num_movies)
             X = pd.merge(self.RM, self.D[['gender', 'age', 'occupation']], on='user_id')

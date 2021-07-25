@@ -41,12 +41,16 @@ class LR(Model):
 
 
     def filter_movie(self):
-        for num_movies in range(5, 21, 3):
+        for num_movies in self.movies_group:
             print("number of movies:" , num_movies)
             for mode in ('random', 'anova'):
+                if mode == 'anova':
+                    continue
                 print('select movies with {} method'.format(mode))
                 if mode == 'random':
                     X = self.RM.sample(n=num_movies, axis=1)
+                    while sum(X.astype(bool).sum(axis=1)==0) > num_movies * 0.5:
+                        X = self.RM.sample(n=num_movies, axis=1)
                 else:
                     selected_movies = self.movies[:num_movies]
                     X = self.RM[selected_movies]
